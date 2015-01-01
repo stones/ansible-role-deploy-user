@@ -1,0 +1,22 @@
+---
+- name: Create deploy user
+  user: name=deploy password="{{ deploy_password }}" groups=www-data append=yes shell=/bin/bash home=/home/deploy
+
+- name: Remove sudo group rights
+  action: lineinfile dest=/etc/sudoers regexp="^%sudo" state=absent
+
+- name: Add deploy user to sudoers
+  action: lineinfile dest=/etc/sudoers regexp="deploy ALL" line="deploy ALL=(ALL) ALL" state=present
+
+- name: Disallow password authentication
+  action: lineinfile dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication no" state=present
+  notify: Restart sshd
+
+- name: Prepare SSH directory
+  file: dest=/home/deploy/.ssh state=directory mode=0700 owner=deploy
+
+- name: Copy private key
+  copy: content="{{ deploy_private_key }}" dest=/home/deploy/.ssh/id_rsa mode=0600 owner=deploy
+
+- name: Copy public key
+  copy: content="{{ (deploy_public_key }}" dest=/home/deploy/.ssh/id_rsa.pub owner=deploy
